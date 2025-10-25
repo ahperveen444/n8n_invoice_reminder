@@ -1,0 +1,572 @@
+{
+  "name": "Invoice",
+  "nodes": [
+    {
+      "parameters": {
+        "sendTo": "ahperveen444@gmail.com",
+        "subject": "={{ $json.output.split(\"Body:\")[0].replace(\"Subject:\", \"\").trim() }}",
+        "message": "={{ $json.output.split(\"Body:\")[1]?.trim() || \"\" }}",
+        "options": {
+          "appendAttribution": false
+        }
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        -120,
+        -340
+      ],
+      "id": "4a143699-f3af-4b21-b18c-691faa767827",
+      "name": "Gmail",
+      "webhookId": "a35f8745-cf98-43c9-a756-1f1c4a0cb38f",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "6z2nL622SG4XkvWn",
+          "name": "Gmail account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Details of Client :\nName : {{ $json['Client Name'] }}\nInvoice ID : {{ $json['Invoice ID'] }}\nEmail : {{ $json.Email }}\nAmount : {{ $json['Amount (USD)'] }}\nDue Date : {{ $json[\"Due Date\"] }}\nStatus : {{ $json.Status }}\nReminder :{{ $json.Reminder }}",
+        "options": {
+          "systemMessage": "=You are an AI assistant that writes professional and situation-aware invoice reminder emails for clients.\n\nYou will receive an invoice record. Based on the data, generate a personalized email with subject and body that matches the current situation. The tone should be polite, professional, and slightly customized according to context.\n\nHere is the invoice data:\n{{JSON.stringify($json)}}\nToday Date is : {{ $now.format('yyyy-MM-dd') }}\nRules for generating the message:\n1. If today's date is 2–3 days before the due date → send a **gentle reminder** telling the client the payment is due soon.\n2. If today's date is the same as the due date → send a **final due day reminder**, urging them to pay today.\n3. If today's date is after the due date → send a **late payment notice**, politely requesting immediate payment and mentioning any late fee policy (if applicable).\n4. If the field \"reminderSent\" is true → make the message **follow-up style** (e.g., \"We previously sent a reminder...\").\n5. If the field \"reminderSent\" is false → treat this as the **first reminder** (e.g., \"This is a friendly reminder...\").\n6. Always mention:\n   - Invoice ID\n   - Amount due\n   - Due date\n7. End politely, offering help if they already made the payment.\n\nReturn with subject and  body text (no JSON, no extra notes) e.g Subject:Follow up Body:Dear XYZ so that subject and body becomes separated.\n"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 2,
+      "position": [
+        -580,
+        -340
+      ],
+      "id": "3a64faa3-0d96-475e-bfb1-95d8745a4365",
+      "name": "AI Agent"
+    },
+    {
+      "parameters": {
+        "modelName": "models/gemini-2.5-flash",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        -680,
+        -140
+      ],
+      "id": "ac960464-9193-488d-8fad-f16d6cb005e1",
+      "name": "Google Gemini Chat Model",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "SeeufLYaLAAb2c8A",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={\n  \"myField\": \"Invoice Has Been Paid\"\n}\n\n",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "position": [
+        -100,
+        20
+      ],
+      "id": "5798ce0b-01d7-4d78-a080-91e25b314afa",
+      "name": "Respond to Webhook"
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "d487a3ac-9e61-4151-91d2-0508d346c6f2",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        -1280,
+        -320
+      ],
+      "id": "6bf4fd72-7f60-4e5f-9c71-6e23c31dd0c5",
+      "name": "Webhook for reminder",
+      "webhookId": "d487a3ac-9e61-4151-91d2-0508d346c6f2"
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "documentId": {
+          "__rl": true,
+          "value": "1SYTW4zrnTJiftztCSAXx9W4WQaPUds_djYzXiDCfgFk",
+          "mode": "list",
+          "cachedResultName": "Invoice",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1SYTW4zrnTJiftztCSAXx9W4WQaPUds_djYzXiDCfgFk/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Sheet1",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1SYTW4zrnTJiftztCSAXx9W4WQaPUds_djYzXiDCfgFk/edit#gid=0"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Invoice ID": "={{ $('Search Invoice').item.json[\"Invoice ID\"] }}",
+            "Client Name": "={{ $('Search Invoice').item.json[\"Client Name\"] }}",
+            "Email": "={{ $('Search Invoice').item.json.Email }}",
+            "Amount (USD)": "={{ $('Search Invoice').item.json[\"Amount (USD)\"] }}",
+            "Due Date": "={{ $('Search Invoice').item.json[\"Due Date\"] }}",
+            "Status": "={{ $('Search Invoice').item.json.Status }}",
+            "Reminder": "Sent"
+          },
+          "matchingColumns": [
+            "Invoice ID"
+          ],
+          "schema": [
+            {
+              "id": "Invoice ID",
+              "displayName": "Invoice ID",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Client Name",
+              "displayName": "Client Name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Email",
+              "displayName": "Email",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Amount (USD)",
+              "displayName": "Amount (USD)",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Due Date",
+              "displayName": "Due Date",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Status",
+              "displayName": "Status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Reminder",
+              "displayName": "Reminder",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "row_number",
+              "displayName": "row_number",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "readOnly": true,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.6,
+      "position": [
+        140,
+        -340
+      ],
+      "id": "0a04f93a-77e2-4090-8a0e-c11faf676b4a",
+      "name": "Update Reminder",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "ca2LmnecuV8O7h8k",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "appendOrUpdate",
+        "documentId": {
+          "__rl": true,
+          "value": "1SYTW4zrnTJiftztCSAXx9W4WQaPUds_djYzXiDCfgFk",
+          "mode": "list",
+          "cachedResultName": "Invoice",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1SYTW4zrnTJiftztCSAXx9W4WQaPUds_djYzXiDCfgFk/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Sheet1",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1SYTW4zrnTJiftztCSAXx9W4WQaPUds_djYzXiDCfgFk/edit#gid=0"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Status": "Paid",
+            "Invoice ID": "={{ $json[\"Invoice ID\"] }}",
+            "Client Name": "={{ $json[\"Client Name\"] }}",
+            "Email": "={{ $json.Email }}",
+            "Amount (USD)": "={{ $json[\"Amount (USD)\"] }}",
+            "Due Date": "={{ $json[\"Due Date\"] }}",
+            "Reminder": "={{ $json.Reminder }}"
+          },
+          "matchingColumns": [
+            "Invoice ID"
+          ],
+          "schema": [
+            {
+              "id": "Invoice ID",
+              "displayName": "Invoice ID",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Client Name",
+              "displayName": "Client Name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Email",
+              "displayName": "Email",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Amount (USD)",
+              "displayName": "Amount (USD)",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Due Date",
+              "displayName": "Due Date",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Status",
+              "displayName": "Status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Reminder",
+              "displayName": "Reminder",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.6,
+      "position": [
+        -360,
+        20
+      ],
+      "id": "27294fcc-2709-489b-9063-bdf7478e8c5c",
+      "name": "Update Status",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "ca2LmnecuV8O7h8k",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "1SYTW4zrnTJiftztCSAXx9W4WQaPUds_djYzXiDCfgFk",
+          "mode": "list",
+          "cachedResultName": "Invoice",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1SYTW4zrnTJiftztCSAXx9W4WQaPUds_djYzXiDCfgFk/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Sheet1",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1SYTW4zrnTJiftztCSAXx9W4WQaPUds_djYzXiDCfgFk/edit#gid=0"
+        },
+        "filtersUI": {
+          "values": [
+            {
+              "lookupColumn": "Invoice ID",
+              "lookupValue": "={{ $json.body.invoiceId }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.6,
+      "position": [
+        -640,
+        20
+      ],
+      "id": "1e53a512-f8d0-4ffc-b78a-5f3e37583edc",
+      "name": "Search Invoice To Update",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "ca2LmnecuV8O7h8k",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "1SYTW4zrnTJiftztCSAXx9W4WQaPUds_djYzXiDCfgFk",
+          "mode": "list",
+          "cachedResultName": "Invoice",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1SYTW4zrnTJiftztCSAXx9W4WQaPUds_djYzXiDCfgFk/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Sheet1",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1SYTW4zrnTJiftztCSAXx9W4WQaPUds_djYzXiDCfgFk/edit#gid=0"
+        },
+        "filtersUI": {
+          "values": [
+            {
+              "lookupColumn": "Invoice ID",
+              "lookupValue": "={{ $json.body.invoiceId }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.6,
+      "position": [
+        -980,
+        -320
+      ],
+      "id": "4b8913c0-a3b0-4d39-8d5b-42e31b61769d",
+      "name": "Search Invoice",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "ca2LmnecuV8O7h8k",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "a39f2819-c7f7-495e-91b8-01a35ff4304b",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        -880,
+        20
+      ],
+      "id": "ef8f2f15-9649-4a59-b132-ae332c973466",
+      "name": "Webhook for Update Status",
+      "webhookId": "a39f2819-c7f7-495e-91b8-01a35ff4304b"
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "{\n  \"myField\": \"Invoice Reminder Has Been Sent\"\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "position": [
+        400,
+        -340
+      ],
+      "id": "f0a210cf-ad3b-4ec8-9786-7b5077f7319a",
+      "name": "Respond to Webhook1"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Gmail": {
+      "main": [
+        [
+          {
+            "node": "Update Reminder",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent": {
+      "main": [
+        [
+          {
+            "node": "Gmail",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Webhook for reminder": {
+      "main": [
+        [
+          {
+            "node": "Search Invoice",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update Reminder": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update Status": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Search Invoice To Update": {
+      "main": [
+        [
+          {
+            "node": "Update Status",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Search Invoice": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Webhook for Update Status": {
+      "main": [
+        [
+          {
+            "node": "Search Invoice To Update",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "24b5be1f-a9e6-4258-b0b9-b9603f76fc6b",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "d05ff8034b20fbf5b33e29c41cc47f677ff959e2c4ed106f97fc934620721917"
+  },
+  "id": "pXbJtZDJkiUYDopv",
+  "tags": []
+}
